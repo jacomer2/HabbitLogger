@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using Microsoft.Data.SqlClient;
-using Microsoft.Data.Sqlite;
-using static System.Formats.Asn1.AsnWriter;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using Microsoft.Data.Sqlite;
+
 
 class Database
 {
@@ -245,15 +240,19 @@ class Program
                     quit = true;
                     return;
                 case "1":
+                    Console.Clear();
                     Records();
                     break;
                 case "2":
+                    Console.Clear();
                     Insert();
                     break;
                 case "3":
+                    Console.Clear();
                     Delete();
                     break;
                 case "4":
+                    Console.Clear();
                     Update();
                     break;
                 default:
@@ -391,7 +390,7 @@ class Program
         int quantity = 0;
         DateOnly date = new DateOnly();
 
-        Console.WriteLine("Enter the id of the entry to update");
+        Console.WriteLine("Enter the id of the entry to update. Type 0 to return to the Main Menu.");
 
         while (!passed)
         {
