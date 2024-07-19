@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "HabbitLogger": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\jacom\\Documents\\LearnC#\\HabbitLogger\\"
+    }
+  }
+}
