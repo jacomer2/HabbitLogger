@@ -1,4 +1,7 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
+using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using static System.Formats.Asn1.AsnWriter;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -40,8 +43,8 @@ class Database
             using var connection = new SqliteConnection(@"Data Source=C:\Users\jacom\Documents\LearnC#\HabbitLogger\db\pub.db");
             connection.Open();
 
-            string sql2 = "INSERT INTO habit (date, quantity) VALUES (@date, @quantity)";
-            SqliteCommand command2 = new SqliteCommand(sql2, connection);
+            string sql = "INSERT INTO habit (date, quantity) VALUES (@date, @quantity)";
+            SqliteCommand command2 = new SqliteCommand(sql, connection);
             command2.Parameters.AddWithValue("@date", date);
             command2.Parameters.AddWithValue("@quantity", quantity);
 
@@ -64,6 +67,13 @@ class Database
         {
             using var connection = new SqliteConnection(@"Data Source=C:\Users\jacom\Documents\LearnC#\HabbitLogger\db\pub.db");
             connection.Open();
+
+            if (getRecord(id) == null)
+            {
+                Console.WriteLine("User not found in db");
+                Console.WriteLine();
+                return;
+            }
 
             string sql = "DELETE FROM habit WHERE id = @id";
             SqliteCommand command2 = new SqliteCommand(sql, connection);
@@ -89,6 +99,13 @@ class Database
             using var connection = new SqliteConnection(@"Data Source=C:\Users\jacom\Documents\LearnC#\HabbitLogger\db\pub.db");
             connection.Open();
 
+            if (getRecord(id) == null)
+            {
+                Console.WriteLine("User not found in db");
+                Console.WriteLine();
+                return;
+            }
+
             string sql = "UPDATE habit SET date = @date, quantity = @quantity WHERE id = @id";
             SqliteCommand command2 = new SqliteCommand(sql, connection);
             command2.Parameters.AddWithValue("@date", date);
@@ -111,20 +128,39 @@ class Database
         return;
     }
 
-    public static void printRecords()
+    public static List<Habit>? printRecords()
     {
+
+        List<Habit> habitList = new List<Habit>();
         try
         {
             using var connection = new SqliteConnection(@"Data Source=C:\Users\jacom\Documents\LearnC#\HabbitLogger\db\pub.db");
             connection.Open();
 
-            string sql2 = "INSERT INTO habit (date, quantity) VALUES (@date, @quantity)";
-            SqliteCommand command2 = new SqliteCommand(sql2, connection);
+            string sql = "SELECT * FROM habit";
+
+            var command = new SqliteCommand(sql, connection);
+
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                int id = reader.GetInt32(0);
+                string dateStr = reader.GetString(1);
+                int quantity = reader.GetInt32(2);
+
+                string dateFormat = "yyyy-MM-dd";
+                DateOnly date = DateOnly.ParseExact(dateStr, dateFormat);
+
+                Habit habit = new Habit(id, date, quantity);
+
+                //Console.WriteLine($"Id: {id}, Date: {dateStr}, Quantity: {quantity}");
+
+                habitList.Add(habit);
+            }
 
 
-            command2.ExecuteNonQuery();
-
-            Console.WriteLine("Added habit entry to table");
+            Console.WriteLine("End of print records");
 
         }
         catch (SqliteException ex)
@@ -132,7 +168,46 @@ class Database
             Console.WriteLine(ex.Message);
         }
 
-        return;
+        return habitList;
+    }
+
+    public static Habit? getRecord(int id)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(@"Data Source=C:\Users\jacom\Documents\LearnC#\HabbitLogger\db\pub.db");
+            connection.Open();
+
+            string sql = "SELECT * FROM habit WHERE id = @id";
+
+            var command = new SqliteCommand(sql, connection);
+            command.Parameters.AddWithValue("@id", id);
+
+
+            var reader = command.ExecuteReader();
+
+            if (reader.Read())
+            {
+
+                string dateStr = reader.GetString(1);
+                int quantity = reader.GetInt32(2);
+
+                string dateFormat = "yyyy-MM-dd";
+                DateOnly date = DateOnly.ParseExact(dateStr, dateFormat);
+
+                Habit habit = new Habit(id, date, quantity);
+
+                return habit;
+            }
+
+        }
+        catch (SqliteException ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        return null;
+
     }
 
 
@@ -197,7 +272,7 @@ class Program
 
     static void Insert()
     {
-        Console.WriteLine("Please enter the date: (Format: dd-mm-yyyy). Type 0 to return to the Main Menu.");
+        Console.WriteLine("Please enter the date: (Format: yyyy-mm-dd). Type 0 to return to the Main Menu.");
 
         bool passed = false;
         int quantity = 0;
@@ -216,14 +291,14 @@ class Program
 
             try
             {
-                string dateFormat = "dd-MM-yyyy";
+                string dateFormat = "yyyy-MM-dd";
                 date = DateOnly.ParseExact(dateStr, dateFormat);
 
                 passed = true;
             }
             catch (FormatException)
             {
-                Console.WriteLine("Invalid input. Please enter a valid date. (Format: dd-mm-yyyy)");
+                Console.WriteLine("Invalid input. Please enter a valid date. (Format: yyyy-mm-dd)");
             }
         }
 
@@ -343,7 +418,7 @@ class Program
 
         passed = false;
 
-        Console.WriteLine("Please enter the date: (Format: dd-mm-yyyy). Type 0 to return to the Main Menu.");
+        Console.WriteLine("Please enter the date: (Format: yyyy-mm-dd). Type 0 to return to the Main Menu.");
 
         while (!passed)
         {
@@ -358,14 +433,14 @@ class Program
 
             try
             {
-                string dateFormat = "dd-MM-yyyy";
+                string dateFormat = "yyyy-MM-dd";
                 date = DateOnly.ParseExact(dateStr, dateFormat);
 
                 passed = true;
             }
             catch (FormatException)
             {
-                Console.WriteLine("Invalid input. Please enter a valid date. (Format: dd-mm-yyyy)");
+                Console.WriteLine("Invalid input. Please enter a valid date. (Format: yyyy-mm-dd)");
             }
         }
 
@@ -412,6 +487,26 @@ class Program
 
     static void Records()
     {
+        List<Habit> habits = Database.printRecords();
+
+        Console.WriteLine("-------------------------------------------------------");
+
+        foreach (Habit habit in habits)
+        {
+
+            string dateStr = habit.Date.ToString("yyyy-MM-dd");
+            string idStr = habit.Id.ToString();
+            string quantStr = habit.Quantity.ToString();
+
+            Console.WriteLine($"| Id: {idStr} | Date: {dateStr} | Quantity: {quantStr} |");
+        }
+
+        Console.WriteLine("-------------------------------------------------------");
+
+        Console.WriteLine();
+        Console.WriteLine("Press any key to return to the Main Menu");
+        Console.ReadKey();
+        Console.Clear();
 
         return;
     }
@@ -422,6 +517,13 @@ class Habit
     private int id; 
     private int quantity; 
     private DateOnly date;
+
+    public Habit(int id, DateOnly date, int quantity)
+    {
+        this.id = id;
+        this.date = date;
+        this.quantity = quantity;
+    }
 
     public int Id { get => id; set => id = value; }
     public int Quantity { get => quantity; set => quantity = value; }
